@@ -1,11 +1,70 @@
 import React from 'react';
+import { formatPrice } from '../helpers';
+import CSSTransitionGroup from 'react-addons-css-transition-group';
 
 class Order extends React.Component {
-	render() {
+	constructor() {
+		super();
+		this.renderOrder = this.renderOrder.bind(this);
+	}
+	renderOrder(key) {
+		const fish = this.props.fishes[key];
+		const count = this.props.order[key];
+		const removeButton = <button onClick={() => this.props.removeFromOrder(key)}>&times;</button>
+
+		if(!fish || fish.status === 'unavailable') {
+			return <li key={key}>Sorry, {fish ? fish.name : 'fish'} is no longer available!{removeButton}</li>
+		}
+
 		return (
-            <p>Order</p>
+			<li key={key}>
+				<span>
+					<CSSTransitionGroup component="span" className="count" transitionName="count" transitionEnterTimeout={500} transitionLeaveTimeout={500}>
+						<span key={count}>{count}</span>
+					</CSSTransitionGroup>
+					lbs {fish.name} {removeButton}
+				</span>
+				<span className="price">{formatPrice(count * fish.price)}</span>
+			</li>
 		)
 	}
+	render() {
+		const orderIds = Object.keys(this.props.order);
+		const total = orderIds.reduce((prevTotal, key) => {
+			// because all fishes and not current/specific fish
+			const fish = this.props.fishes[key];
+			// need count - how many bought
+			const count = this.props.order[key];
+			// because things can change at any given moment. real time app
+			const isAvailable = fish && fish.status === 'available';
+			// add it up
+			if(isAvailable) {
+				// || 0 because sometimes the fish will be in order but subsequently deleted
+				return prevTotal + (count * fish.price || 0)
+			}
+			// otherwise last amount
+			return prevTotal;
+			// need to start with starting value
+		}, 0);
+		return (
+			<div className="order-wrap">
+				<h2>Your Order</h2>
+				<CSSTransitionGroup className="order" component="ul" transitionName="order" transitionEnterTimeout={500} transitionLeaveTimeout={500}>
+				{orderIds.map(this.renderOrder)}
+					<li className="total">
+						<strong>Total:</strong>
+						{formatPrice(total)}
+					</li>
+				</CSSTransitionGroup>
+			</div>
+		)
+	}
+}
+
+Order.propTypes = {
+	fishes: React.PropTypes.object.isRequired,
+	order: React.PropTypes.object.isRequired,
+	removeFromOrder: React.PropTypes.func.isRequired
 }
 
 export default Order;
